@@ -3,7 +3,7 @@
 name: Build, Test and Prepare Python App
 
 on:
-  pull_request:
+  push:
     branches: [ main ]
 
 jobs:
