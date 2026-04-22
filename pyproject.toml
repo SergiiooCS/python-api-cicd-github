@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-api-cicd-testing"
+version = "0.0.1"
+description = "Simple Flask API for CI/CD testing"
+requires-python = ">=3.12"
+dependencies = [
+    "flask"
+]
+
+[tool.setuptools]
+packages = ["app"]
