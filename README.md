@@ -14,8 +14,6 @@ Pasos del Workflow CI:
 Proximos pasos:
 CI:
 
-- Crear el archivo 'setup.py' en la carpeta 'app' para poder ejecutar bien el paso 'Build Python package'.
-- Almacenar la Build de Python para usarla en un DockerFile (CD).
 - Configurar un runner self-hosted para poder hacer un CD a Minikube local.
 
 Pasos del Workflow CD:
