@@ -8,7 +8,7 @@ on:
 
 jobs:
     ci-python-app:
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, linux, x64, podman, local]
         steps:
             - name: Checkout code
               uses: actions/checkout@v5
