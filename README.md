@@ -329,7 +329,5 @@ Pasos del Workflow CD:
 
 Proximos pasos:
 
-1. Que Minikube tenga acceso a GHCR
-2. Manifests Kubernetes de tu app
-3. Que tu runner pueda ejecutar kubectl contra Minikube
-4. Workflow CD
+1. Crear gitrepository de FluxCD, reconciliar y revisar todos los archivos, componentes de flux, etc.
+2. Workflow CD
