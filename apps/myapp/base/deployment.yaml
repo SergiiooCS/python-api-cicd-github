@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: myapp
+          image: ghcr.io/placeholder/placeholder:latest # {"$imagepolicy": "flux-system:myapp"}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000

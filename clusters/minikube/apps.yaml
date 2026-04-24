@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: minikube-secrets
+  namespace: flux-system
+spec:
+  interval: 1m
+  path: ./clusters/minikube/secrets
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  interval: 1m
+  dependsOn:
+    - name: minikube-secrets
+  path: ./apps/myapp/overlays/dev
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  targetNamespace: dev
+  timeout: 2m

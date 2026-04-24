@@ -1,0 +1,50 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  image: ghcr.io/sergiioocs/python-api-cicd-testing
+  interval: 1m
+  secretRef:
+    name: ghcr-registry-auth
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: myapp
+  filterTags:
+    pattern: '^main-[a-fA-F0-9]+-(?P<ts>[1-9][0-9]*)$'
+    extract: '$ts'
+  policy:
+    numerical:
+      order: asc
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  interval: 1m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxcdbot@users.noreply.github.com
+        name: fluxcdbot
+      messageTemplate: "chore(gitops): update myapp image"
+    push:
+      branch: main
+  update:
+    path: ./apps/myapp/base
+    strategy: Setters

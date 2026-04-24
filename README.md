@@ -324,6 +324,12 @@ El container ha sido creado y deberiamos ver como se ha ejecutado y escribe logs
 
     podman logs -f github-runner
 
-Proximos pasos:
 Pasos del Workflow CD:
 (Crear Workflow para CD)
+
+Proximos pasos:
+
+1. Que Minikube tenga acceso a GHCR
+2. Manifests Kubernetes de tu app
+3. Que tu runner pueda ejecutar kubectl contra Minikube
+4. Workflow CD
