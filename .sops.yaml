@@ -1,4 +1,4 @@
 creation_rules:
-  - path_regex: clusters/minikube/secrets/.*\.yaml$
+  - path_regex: clusters/minikube/(secrets|source)/.*\.yaml$
     encrypted_regex: '^(data|stringData)$'
     age: age1nvz70ympaeamwqp6rgvh7szctamvw70ft56ljlgzcf393thz8peqwsc3h8
