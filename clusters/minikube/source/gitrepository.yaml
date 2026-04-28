@@ -4,7 +4,7 @@ metadata:
   name: flux-system
   namespace: flux-system
 spec:
-  interval: 10m
+  interval: 5m
   url: https://github.com/SergiiooCS/python-api-cicd-testing.git
   ref:
     branch: main
