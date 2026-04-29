@@ -5,9 +5,13 @@ name: Build, Test and Prepare Python App
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'apps/myapp/base/kustomization.yaml'
+      - 'clusters/**'
 
 jobs:
     ci-python-app:
+        if: ${{ github.actor != 'fluxcdbot' }}
         runs-on: [self-hosted, linux, x64, podman, local]
         steps:
             - name: Checkout code
