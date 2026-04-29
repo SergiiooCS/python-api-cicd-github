@@ -17,7 +17,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: myapp
-          image: ghcr.io/sergiioocs/python-api-cicd-testing:main-52989c6-1777472253 # {"$imagepolicy": "flux-system:myapp"}
+          image: ghcr.io/sergiioocs/python-api-cicd-testing:main-97a6905-1777472375 # {"$imagepolicy": "flux-system:myapp"}
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
