@@ -5,10 +5,6 @@ name: Build, Test and Prepare Python App
 on:
   push:
     branches: [ main ]
-    paths-ignore:
-      - 'clusters/**'
-      - 'apps/myapp/base/kustomization.yaml'
-      - 'apps/myapp/base/deployment.yaml'
 
 jobs:
     ci-python-app:
