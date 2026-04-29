@@ -17,7 +17,11 @@ spec:
         - name: ghcr-registry-auth
       containers:
         - name: myapp
+<<<<<<< HEAD
           image: ghcr.io/sergiioocs/python-api-cicd-testing:main-58d2886-1777474574 # {"$imagepolicy": "flux-system:myapp"}
+=======
+          image: ghcr.io/placeholder/placeholder
+>>>>>>> 14f74b8 (CI & image automation modified)
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

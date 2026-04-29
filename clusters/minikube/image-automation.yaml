@@ -30,7 +30,7 @@ metadata:
   name: myapp
   namespace: flux-system
 spec:
-  interval: 1m
+  interval: 30m
   sourceRef:
     kind: GitRepository
     name: flux-system

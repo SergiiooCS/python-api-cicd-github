@@ -22,7 +22,7 @@ env:
 
 jobs:
     publish:
-        if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.login != 'fluxcdbot' }}
+        if: ${{ github.event.workflow_run.actor.login != 'fluxcdbot'  && github.event.workflow_run.conclusion == 'success'}}
         runs-on: [self-hosted, linux, x64, podman, local]
         steps:
             # Necesario para obtener el archivo Dockerfile y el contexto de construccion, ademas de ser una buena practica para asegurarnos de que estamos trabajando con el codigo correcto.

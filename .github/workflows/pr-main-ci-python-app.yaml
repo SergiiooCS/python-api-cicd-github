@@ -6,8 +6,9 @@ on:
   push:
     branches: [ main ]
     paths-ignore:
-      - 'apps/myapp/base/kustomization.yaml'
       - 'clusters/**'
+      - 'apps/myapp/base/kustomization.yaml'
+      - 'apps/myapp/base/deployment.yaml'
 
 jobs:
     ci-python-app:
