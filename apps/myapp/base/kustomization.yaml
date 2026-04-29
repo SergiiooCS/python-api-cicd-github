@@ -6,4 +6,4 @@ resources:
 images:
   - name: ghcr.io/placeholder/placeholder
     newName: ghcr.io/sergiioocs/python-api-cicd-testing
-    newTag: ghcr.io/sergiioocs/python-api-cicd-testing:main-e9c364e-1777472011 # {"$imagepolicy": "flux-system:myapp"}
+    newTag: ghcr.io/sergiioocs/python-api-cicd-testing:main-a40bedc-1777472134 # {"$imagepolicy": "flux-system:myapp"}
