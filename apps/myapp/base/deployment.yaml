@@ -14,7 +14,7 @@ spec:
         app: myapp
     spec:
       imagePullSecrets:
-        - name: ghcr-registry-auth
+        - name: ghcr-registry-auth-dev
       containers:
         - name: myapp
           image: "ghcr.io/placeholder/placeholder"
