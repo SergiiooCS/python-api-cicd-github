@@ -10,8 +10,8 @@ spec:
   ref:
     branch: main
   secretRef:
-    name: flux-system
-  url: ssh://git@github.com/SergiiooCS/python-api-cicd-testing
+    name: flux-git-auth
+  url: https://git@github.com/SergiiooCS/python-api-cicd-testing
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
