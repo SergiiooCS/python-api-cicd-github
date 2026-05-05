@@ -75,11 +75,6 @@ jobs:
                 tags: ${{ steps.meta.outputs.tags }}
                 labels: ${{ steps.meta.outputs.labels }}
 
-            - name: Install yq
-              run: |
-                wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-                chmod +x /usr/local/bin/yq
-
             - name: Update image tag in deployment
               run: |
                 yq -i '.spec.template.spec.containers[0].image = "ghcr.io/sergiioocs/python-api-cicd-testing:${{ steps.flux_tag.outputs.image_tag }}"' apps/myapp/base/deployment.yaml
