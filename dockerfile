@@ -11,4 +11,4 @@ COPY dist/*.whl /tmp/
 RUN pip install --no-cache-dir /tmp/*.whl
 
 # RUN THE APPLICATION.
-CMD ["python", "app.py"]
+CMD ["python", "-m", "app.main"]
