@@ -14,6 +14,7 @@ permissions:
     actions: read
     contents: read
     packages: write
+    pull-requests: write
 
 # VARIABLES DE ENTORNO PARA CONFIGURAR EL REGISTRO Y EL NOMBRE DE LA IMAGEN, EN ESTE CASO SE UTILIZA EL NOMBRE DEL REPOSITORIO DE GITHUB PARA LA IMAGEN, PERO SE PUEDE PERSONALIZAR.
 env:
@@ -22,7 +23,7 @@ env:
 
 jobs:
     publish:
-        if: ${{ github.event.workflow_run.actor.login != 'fluxcdbot'  && github.event.workflow_run.conclusion == 'success'}}
+        if: ${{ github.event.workflow_run.actor.login != 'fluxcdbot' && github.event.workflow_run.conclusion == 'success' }}
         runs-on: [self-hosted, linux, x64, podman, local]
         steps:
             # Necesario para obtener el archivo Dockerfile y el contexto de construccion, ademas de ser una buena practica para asegurarnos de que estamos trabajando con el codigo correcto.
@@ -74,9 +75,14 @@ jobs:
                 tags: ${{ steps.meta.outputs.tags }}
                 labels: ${{ steps.meta.outputs.labels }}
 
+            - name: Install yq
+              run: |
+                wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+                chmod +x /usr/local/bin/yq
+
             - name: Update image tag in deployment
               run: |
-                sed -i "s|image: ghcr.io/sergiioocs/python-api-cicd-testing:.*|image: ghcr.io/sergiioocs/python-api-cicd-testing:${{ steps.flux_tag.outputs.image_tag }}|" apps/myapp/base/deployment.yaml
+                yq -i '.spec.template.spec.containers[0].image = "ghcr.io/sergiioocs/python-api-cicd-testing:${{ steps.flux_tag.outputs.image_tag }}"' apps/myapp/base/deployment.yaml
 
             - name: Create PR with new image tag
               uses: peter-evans/create-pull-request@v7
