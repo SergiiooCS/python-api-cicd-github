@@ -5,10 +5,12 @@ name: Build, Test and Prepare Python App
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'apps/myapp/base/deployment.yaml'
 
 jobs:
     ci-python-app:
-        if: ${{ github.actor != 'fluxcdbot' }}
+        if: ${{ github.actor != 'github-actions[bot]' && github.actor != 'fluxcdbot' }}
         runs-on: [self-hosted, linux, x64, podman, local]
         steps:
             - name: Checkout code
