@@ -67,6 +67,12 @@ Para crear la imagen utilice un Containerfile:
         zlib1g \            # compresion
         && rm -rf /var/lib/apt/lists/*   # limpia cache para liberar espacio
 
+    # Descarga el binario de yq, lo instala en el sistema y verifica que funciona.
+    RUN curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+        -o /usr/local/bin/yq && \
+        chmod +x /usr/local/bin/yq && \
+        yq --version
+
     # crea directorio para claves de apt y añade repo oficial de docker
     RUN install -m 0755 -d /etc/apt/keyrings && \   # crea carpeta con permisos correctos
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \  # descarga clave gpg
@@ -112,203 +118,210 @@ Tambien se utilizo el archivo 'entrypoint.sh' para automatizar procesos en el ar
     #!/usr/bin/env bash
     # usa bash para ejecutar este script
 
+    # hace que el script falle si hay errores, variables no definidas o pipes fallan
     set -euo pipefail
-    # -e: si falla un comando, el script termina
-    # -u: si se usa una variable no definida, falla
-    # -o pipefail: si falla algo dentro de un pipe, tambien falla
 
+    # version de la API de GitHub
     API_VERSION="2022-11-28"
-    # version de la api de github que se va a usar en las llamadas
 
+    # variable para guardar el PID de dockerd
     DOCKERD_PID=""
-    # aqui se guardara el pid del proceso dockerd para poder pararlo luego
 
+    # =========================
+    # FUNCION DE LIMPIEZA
+    # =========================
     cleanup() {
     echo "Apagando runner..."
 
-    if [[ -n "${REMOVE_TOKEN:-}" ]]; then
-        # comprueba si existe un token de borrado y no esta vacio
+    # si existe token y el runner está configurado, intenta eliminarlo de GitHub
+    if [[ -n "${REMOVE_TOKEN:-}" && -f "${RUNNER_HOME}/.runner" ]]; then
         echo "Intentando desregistrar runner..."
         su -s /bin/bash runner -c "cd ${RUNNER_HOME} && ./config.sh remove --unattended --token '${REMOVE_TOKEN}'" || true
-        # ejecuta como usuario runner el borrado del runner en github
-        # || true evita que el script falle si no se puede borrar
     fi
 
-    if [[ -n "${DOCKERD_PID:-}" ]]; then
-        # comprueba si se guardo el pid de dockerd
-        echo "Parando dockerd..."
-        kill "${DOCKERD_PID}" || true
-        # mata el proceso dockerd
-        # || true evita error si ya estaba parado
-    fi
+    # para los procesos de docker y containerd
+    echo "Parando dockerd/containerd..."
+    pkill -TERM dockerd || true
+    pkill -TERM containerd || true
+    sleep 3
+    pkill -KILL dockerd || true
+    pkill -KILL containerd || true
+
+    # elimina sockets y estado temporal
+    rm -rf /var/run/docker /run/containerd
     }
 
+    # ejecuta cleanup cuando el contenedor se para o recibe señales
     trap 'cleanup; exit 130' INT
-    # si recibe interrupcion (ctrl+c), ejecuta cleanup y sale con codigo 130
-
     trap 'cleanup; exit 143' TERM
-    # si recibe señal term, ejecuta cleanup y sale con codigo 143
 
+    # define la ruta del runner si no existe
     : "${RUNNER_HOME:=/actions-runner}"
-    # si RUNNER_HOME no existe, le asigna /actions-runner
 
-    if [[ -z "${REPO_URL:-}" ]]; then
-    # comprueba si falta la url del repositorio
-    echo "ERROR: falta REPO_URL"
-    exit 1
-    fi
+    # =========================
+    # VALIDACIONES
+    # =========================
 
-    if [[ -z "${GITHUB_PAT:-}" ]]; then
-    # comprueba si falta el token personal de github
-    echo "ERROR: falta GITHUB_PAT"
-    exit 1
-    fi
+    # comprueba que las variables necesarias están definidas
+    [[ -z "${REPO_URL:-}" ]] && echo "ERROR: falta REPO_URL" && exit 1
+    [[ -z "${GITHUB_PAT:-}" ]] && echo "ERROR: falta GITHUB_PAT" && exit 1
+    [[ -z "${GITHUB_OWNER:-}" ]] && echo "ERROR: falta GITHUB_OWNER" && exit 1
+    [[ -z "${GITHUB_REPO:-}" ]] && echo "ERROR: falta GITHUB_REPO" && exit 1
 
-    if [[ -z "${GITHUB_OWNER:-}" ]]; then
-    # comprueba si falta el owner del repo u organizacion
-    echo "ERROR: falta GITHUB_OWNER"
-    exit 1
-    fi
-
-    if [[ -z "${GITHUB_REPO:-}" ]]; then
-    # comprueba si falta el nombre del repo
-    echo "ERROR: falta GITHUB_REPO"
-    exit 1
-    fi
-
+    # valores por defecto del runner
     RUNNER_NAME="${RUNNER_NAME:-podman-runner}"
-    # nombre por defecto del runner si no se pasa por variable
     RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,podman,local}"
-    # labels por defecto del runner
     RUNNER_WORKDIR="${RUNNER_WORKDIR:-_work}"
-    # carpeta de trabajo por defecto del runner
     EPHEMERAL="${EPHEMERAL:-false}"
-    # define si el runner sera efimero o no
 
-    mkdir -p /var/run /var/lib/docker "${RUNNER_HOME}/${RUNNER_WORKDIR}"
-    # crea directorios necesarios para docker y para el runner
+    # =========================
+    # LIMPIEZA DOCKER
+    # =========================
 
+    echo "Limpiando estado previo de Docker/containerd..."
+
+    # mata procesos antiguos de docker
+    pkill -TERM dockerd || true
+    pkill -TERM containerd || true
+    sleep 3
+    pkill -KILL dockerd || true
+    pkill -KILL containerd || true
+
+    # elimina directorios temporales
+    rm -rf /var/run/docker /run/containerd
+
+    # recrea directorios necesarios
+    mkdir -p /var/run/docker /run/containerd /var/lib/docker /var/lib/containerd "${RUNNER_HOME}/${RUNNER_WORKDIR}"
+
+    # asigna permisos al usuario runner
     chown -R runner:runner "${RUNNER_HOME}"
-    # cambia el dueño del directorio del runner al usuario runner
+
+    # =========================
+    # ARRANQUE DOCKER
+    # =========================
+
     echo "Arrancando dockerd..."
+
+    # arranca docker daemon en background
     dockerd \
     --host=unix:///var/run/docker.sock \
-    # hace que docker escuche en el socket unix habitual
-    -G docker \
-    # asigna el grupo docker al socket
-    --bridge=none \
-    # no crea red bridge por defecto
-    --iptables=false \
-    # no modifica reglas iptables
-    --ip-forward=false \
-    # no habilita reenvio de paquetes
-    --ip-masq=false \
-    # no habilita ip masquerade
+    --exec-root=/var/run/docker \
+    --data-root=/var/lib/docker \
+    --pidfile=/var/run/docker.pid \
     --userland-proxy=false \
-    # desactiva el proxy userland
     --storage-driver=vfs \
-    # usa el driver de almacenamiento vfs, mas simple pero menos eficiente
     > /tmp/dockerd.log 2>&1 &
-    # guarda logs en fichero y lanza dockerd en segundo plano
 
+    # guarda el PID de dockerd
     DOCKERD_PID=$!
-    # guarda el pid del ultimo proceso lanzado en background
 
     echo "Esperando a que Docker responda..."
-    for i in $(seq 1 30); do
-    # hace hasta 30 intentos para comprobar si docker esta listo
+
+    # espera hasta que docker esté listo
+    for i in $(seq 1 60); do
     if docker info > /dev/null 2>&1; then
-        # intenta consultar info de docker sin mostrar salida
-        echo "Docker está listo."
+        echo "Docker listo"
         break
     fi
-    sleep 2
-    # espera 2 segundos antes del siguiente intento
-    done
 
-    if ! docker info > /dev/null 2>&1; then
-    # si despues de esperar docker sigue sin responder
-    echo "ERROR: Docker no arrancó correctamente"
-    echo "==== dockerd.log ===="
-    cat /tmp/dockerd.log || true
-    # imprime el log de dockerd para depurar
-    # || true evita fallo si no se puede leer
-    exit 1
-    # termina el script con error
+    # si dockerd muere, muestra logs y sale
+    if ! kill -0 "${DOCKERD_PID}" 2>/dev/null; then
+        echo "ERROR: dockerd murió"
+        cat /tmp/dockerd.log
+        exit 1
     fi
 
+    sleep 2
+    done
+
+    # validación final de docker
+    if ! docker info > /dev/null 2>&1; then
+    echo "ERROR: Docker no arrancó"
+    cat /tmp/dockerd.log
+    exit 1
+    fi
+
+    # =========================
+    # RED DOCKER (FIX NETWORK)
+    # =========================
+
+    # comprueba si existe la red bridge, si no la crea
+    if ! docker network inspect bridge > /dev/null 2>&1; then
+    echo "Creando red bridge..."
+    docker network create bridge
+    fi
+
+    # =========================
+    # TOKENS GITHUB
+    # =========================
+
     echo "Solicitando registration token..."
+
+    # obtiene token para registrar el runner en GitHub
     REG_TOKEN="$(
     curl -fsSL -X POST \
         -H "Accept: application/vnd.github+json" \
-        # indica el formato esperado de la api
-
         -H "Authorization: Bearer ${GITHUB_PAT}" \
-        # autentica con el token personal de github
-
         -H "X-GitHub-Api-Version: ${API_VERSION}" \
-        # manda la version de la api
-
         "https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners/registration-token" \
-        # endpoint para pedir el token temporal de registro del runner
-
     | jq -r '.token'
-    # extrae solo el campo token de la respuesta json
     )"
-    # guarda el token en la variable REG_TOKEN
 
-    if [[ -z "${REG_TOKEN}" || "${REG_TOKEN}" == "null" ]]; then
-    # comprueba si el token no existe o vino null
-
-    echo "ERROR: no se pudo obtener registration token"
-    exit 1
-    fi
+    # valida que el token se ha obtenido
+    [[ -z "${REG_TOKEN}" || "${REG_TOKEN}" == "null" ]] && echo "ERROR obteniendo REG_TOKEN" && exit 1
 
     echo "Solicitando remove token..."
+
+    # obtiene token para eliminar el runner
     REMOVE_TOKEN="$(
     curl -fsSL -X POST \
         -H "Accept: application/vnd.github+json" \
-        # indica formato esperado
-
         -H "Authorization: Bearer ${GITHUB_PAT}" \
-        # autentica con el token personal
-
         -H "X-GitHub-Api-Version: ${API_VERSION}" \
-        # version de la api
-
         "https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners/remove-token" \
-        # endpoint para pedir token temporal de borrado del runner
-
     | jq -r '.token'
-    # extrae solo el token del json
     )"
-    # guarda el token en REMOVE_TOKEN
 
-    if [[ -z "${REMOVE_TOKEN}" || "${REMOVE_TOKEN}" == "null" ]]; then
-    # comprueba si no se pudo obtener el token de borrado
+    # =========================
+    # LIMPIEZA RUNNER
+    # =========================
 
-    echo "WARNING: no se pudo obtener remove token; la limpieza puede fallar"
-    REMOVE_TOKEN=""
-    # deja la variable vacia para que cleanup no intente usar un valor invalido
+    # si ya existe un runner configurado, lo elimina
+    if [[ -f "${RUNNER_HOME}/.runner" ]]; then
+    echo "Eliminando runner previo..."
+    su -s /bin/bash runner -c "cd ${RUNNER_HOME} && ./config.sh remove --unattended --token '${REMOVE_TOKEN}'" || true
     fi
 
+    # elimina archivos de configuración anteriores
+    rm -f "${RUNNER_HOME}/.runner"
+    rm -f "${RUNNER_HOME}/.credentials"
+    rm -f "${RUNNER_HOME}/.credentials_rsaparams"
+    rm -f "${RUNNER_HOME}/.path"
+    rm -f "${RUNNER_HOME}/.env"
+    rm -rf "${RUNNER_HOME}/_diag"
+    rm -rf ${RUNNER_HOME}/.credentials_*
+
+    # =========================
+    # CONFIGURACIÓN RUNNER
+    # =========================
+
+    # comando para registrar el runner en GitHub
     CONFIG_CMD="./config.sh --url '${REPO_URL}' --token '${REG_TOKEN}' --name '${RUNNER_NAME}' --labels '${RUNNER_LABELS}' --work '${RUNNER_WORKDIR}' --unattended --replace"
-    # construye el comando para configurar el runner de github actions
 
+    # si es ephemeral, añade flag
     if [[ "${EPHEMERAL}" == "true" ]]; then
-    # comprueba si el runner debe ser efimero
-
     CONFIG_CMD="${CONFIG_CMD} --ephemeral"
-    # añade la opcion para que el runner solo haga un trabajo y luego se elimine
     fi
 
-    echo "Configurando runner ${RUNNER_NAME}..."
+    echo "Configurando runner..."
+
+    # ejecuta configuración como usuario runner
     su -s /bin/bash runner -c "cd ${RUNNER_HOME} && ${CONFIG_CMD}"
-    # ejecuta la configuracion del runner como usuario runner dentro del directorio correcto
+
     echo "Iniciando runner..."
+
+    # arranca el runner (proceso principal del contenedor)
     exec su -s /bin/bash runner -c "cd ${RUNNER_HOME} && ./run.sh"
-    # arranca el runner como proceso principal del contenedor
-    # exec sustituye el shell actual por este proceso
 
 Con estos 2 archivos podemos ejecutar los comandos necesarios para crear la imagen completa para nuestro contenedor del Runner:
 
@@ -318,16 +331,18 @@ Antes de crear el contenedor es necesario tener creado un PAT Fine-Grained (Pers
 
 Una vez se ha construido y tenemos la imagen lista, podemos crear el contenedor del Runner.
 
-    podman run -d --name github-runner --privileged -e REPO_URL="https://github.com/<NOMBRE_USUARIO>/<NOMBRE_REPOSITORIO>" -e GITHUB_OWNER="<NOMBRE_USUARIO>" -e GITHUB_REPO="<NOMBRE_REPOSITORIO>" -e GITHUB_PAT="<CODIGO_PAT_FINE_GRAINED>" -e RUNNER_NAME="runner-podman-win11" -e RUNNER_LABELS="self-hosted,linux,x64,podman,local" -v github_runner_work:/actions-runner/_work -v github_runner_docker:/var/lib/docker local/github-runner:latest
+    podman run -d --name github-runner --privileged -e REPO_URL="https://github.com/SergiiooCS/python-api-cicd-testing" -e GITHUB_OWNER="SergiiooCS" -e GITHUB_REPO="python-api-cicd-testing" -e GITHUB_PAT=$env:GITHUB_TOKEN -e RUNNER_NAME="runner-podman-win11-$(Get-Random)" -e RUNNER_LABELS="self-hosted,linux,x64,podman,local" -v github_runner_work:/actions-runner/_work local/github-runner:latest
 
 El container ha sido creado y deberiamos ver como se ha ejecutado y escribe logs.
 
     podman logs -f github-runner
 
-Pasos del Workflow CD:
-(Crear Workflow para CD)
+Se ha aplicado GitOps en mi servidor minikube local. Para ello he utilizado FluxCD instalado en mi minikube local y enlazado a este repositorio. Componentes utilizados.
 
-Proximos pasos:
+1. Crear GitRepository con los permisos suficientes que requiere FluxCD.
+2. Crear 'apps.yaml' donde se crea el namespace 'dev', se crea el kustomization encargado de crear los secrets necesarios para el cluster donde se utiliza SOPS para la encriptacion de los secrets y se crea el kustomization encargado de crear y gestionar la aplicacion del cluster.
+3. Se ha creado el 'deployment.yaml', 'service.yaml' e 'ingress.yaml' para la aplicacion.
+4. Se ha añadido un cambio al CI/CD para que despues de subir la imagen al GHCR cree una PR cambiando el tag de la imagen anterior en el 'deployment.yaml' por el tag de la nueva imagen. De esta forma tenemos actualizada la imagen por cada cambio del codigo. Al ser una PR se puede probar la imagen, si falla es tan sencillo como hacer un 'revert' del cambio de la PR.
 
-1. Crear gitrepository de FluxCD, reconciliar y revisar todos los archivos, componentes de flux, etc.
-2. Workflow CD
+Para tener un Dashboard en el cual poder observar, buscar y monitorear el cluster de forma rapida y sencilla he decidido utilizar 'Openlens'.
+URL: <https://github.com/MuhammedKalkan/OpenLens>
