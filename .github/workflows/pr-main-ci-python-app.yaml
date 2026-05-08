@@ -3,6 +3,9 @@
 name: Build, Test and Prepare Python App
 
 on:
+  pull_request:
+    branches: [ main ]
+
   push:
     branches: [ main ]
     paths-ignore:
