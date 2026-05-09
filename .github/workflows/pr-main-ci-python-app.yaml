@@ -25,12 +25,15 @@ jobs:
               with:
                 python-version: '3.12'
 
+            - name: Check runner environment variables
+              run: python3 scripts/check_runner_env.py
+
+            - name: Check if runner required tools exists
+              run: python3 scripts/check_required_tools.py
+
             - name: Install dependencies
               run: |
                 pip install -r requirements.txt
-
-            - name: Check runner environment variables
-              run: python3 scripts/check_runner_env.py
 
             - name: Install Flake8 for linting
               run: |
