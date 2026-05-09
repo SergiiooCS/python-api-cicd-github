@@ -17,7 +17,7 @@ spec:
         - name: ghcr-registry-auth-dev
       containers:
         - name: myapp
-          image: "ghcr.io/sergiioocs/python-api-cicd-testing:main-f4ac3a5-1777983471"
+          image: "ghcr.io/sergiioocs/python-api-cicd-testing:main-03ff1cc-1778321197"
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
