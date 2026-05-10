@@ -15,7 +15,7 @@ def parse_arguments():
     
     parser.add_argument(
         "--file",
-        required="True",
+        required=True,
         help="PATH to Kubernetes YAML manifest"
     )
     
@@ -37,8 +37,13 @@ def load_yaml_file(file_path):
     if not path.is_file():
         raise ValueError(f"La ruta no es un archivo: {path}")
 
-    with path.open("r", endcoding="utf-8") as file: #"r" - read
-        return yaml.safe_load(file)
+    with path.open("r", encoding="utf-8") as file:
+        manifest = yaml.safe_load(file)
+
+    if manifest is None:
+        raise ValueError(f"El archivo YAML está vacío: {path}")
+
+    return manifest
 
 """
 CREO UN OBJETO 'path' DE LA CLASE 'Path' DE LA LIBRERIA 'pathlib' PASANDOLE LA RUTA DEL ARCHIVO QUE QUEREMOS CARGAR.
@@ -187,7 +192,7 @@ def main():
         return 1
 
 """
-CREO 'args' PARA ALMACENAR LOS ARGUMENTOS PARSEADOS POR LA FUNCION 'parse_args'.
+CREO 'args' PARA ALMACENAR LOS ARGUMENTOS PARSEADOS POR LA FUNCION 'parse_arguments'.
 INTENTO CARGAR EL MANIFIESTO DE KUBERNETES UTILIZANDO LA FUNCION 'load_yaml_file' PASANDOLE LA RUTA DEL ARCHIVO QUE OBTENGO DE 'args.file'. SI HAY UN ERROR DE SINTAXIS EN EL ARCHIVO YAML, SE LANZARA UNA EXCEPCION 'yaml.YAMLError' QUE SERÁ CAPTURADA EN EL BLOQUE 'except' CORRESPONDIENTE, MOSTRANDO UN MENSAJE DE ERROR Y DEVOLVIENDO '1'.
 SI EL MANIFIESTO SE CARGA CORRECTAMENTE, LLAMO A LA FUNCION 'validate_manifest' PASANDOLE EL MANIFIESTO CARGADO Y ALMACENO LOS ERRORES DE VALIDACION EN LA VARIABLE 'errors'.
 SI HAY ERRORES DE VALIDACION, MOSTRAMOS POR CONSOLA UN MENSAJE INDICANDO QUE LA VALIDACION DEL MANIFIESTO DE KUBERNETES HA FALLADO Y RECORREMOS LA LISTA DE ERRORES MOSTRANDO CADA ERROR POR CONSOLA. DEVOLVEMOS '1' PARA INDICAR QUE EL SCRIPT HA FALLADO.
