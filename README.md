@@ -1,4 +1,4 @@
-# python-api-cicd-testing
+# python-api-cicd-github
 
 Repositorio de laboratorio para construir un entorno local de CI/CD y GitOps utilizando GitHub Actions, un runner self-hosted en Podman, GHCR, Minikube y FluxCD.
 
@@ -52,21 +52,73 @@ Minikube deployment
 
 ## Workflow: Build, Test and Prepare Python App
 
-Este workflow se encarga de validar y preparar la aplicación Python.
+Este workflow se encarga de validar, comprobar y preparar la aplicacion Python antes de continuar con el proceso de publicacion de imagen.
+
+El objetivo principal es aplicar varios checks previos dentro del proceso de CI para detectar errores antes de construir el paquete Python o generar una nueva imagen de contenedor.
 
 ### Pasos principales
 
-1. Checkout del código.
-2. Configuración de Python `3.12`.
-3. Instalación de dependencias desde `requirements.txt`.
-4. Ejecución de lint con `flake8`.
-5. Ejecución de tests unitarios con `pytest`.
-6. Construcción del paquete Python `.whl`.
-7. Publicación del `.whl` como artifact de GitHub Actions.
+1. Checkout del codigo.
+2. Configuracion de Python `3.12`.
+3. Instalacion de dependencias desde `requirements.txt`.
+4. Ejecucion del script `check_env.py`.
+5. Ejecucion del script `check_required_tools.py`.
+6. Ejecucion del script `validate_k8s_manifest.py`.
+7. Instalacion de `flake8` para linting.
+8. Ejecucion de lint sobre el codigo Python.
+9. Ejecucion de tests unitarios con `pytest`.
+10. Instalacion de la herramienta `build`.
+11. Construccion del paquete Python `.whl`.
+12. Publicacion del `.whl` como artifact de GitHub Actions.
 
-### Objetivo
+### Scripts Python utilizados en CI
 
-Garantizar que el código es válido antes de construir una imagen Docker o desplegar cambios en el entorno GitOps.
+Dentro del workflow de Build se ejecutan varios scripts Python personalizados para validar el entorno y aplicar checks previos antes del build.
+
+#### `check_env.py`
+
+Este script comprueba variables de entorno disponibles dentro del runner self-hosted.
+
+Su objetivo es entender y validar el contexto de ejecucion del pipeline, incluyendo variables propias de GitHub Actions, del sistema y del runner.
+
+Ejemplos de validaciones:
+
+- Variables de entorno existentes.
+- Variables vacias o no definidas.
+- Variables sensibles enmascaradas en la salida.
+- Informacion general del entorno de ejecucion.
+
+#### `check_required_tools.py`
+
+Este script valida que el runner self-hosted tenga disponibles las herramientas necesarias para ejecutar correctamente el CI.
+
+Comprueba comandos instalados en el sistema mediante el `PATH`.
+
+Herramientas comprobadas:
+
+- `bash`
+- `curl`
+- `git`
+- `jq`
+- `yq`
+- `tar`
+- `gzip`
+- `unzip`
+- `docker`
+- `python3`
+- `pip`
+
+Si alguna herramienta obligatoria no existe, el script devuelve un codigo de salida distinto de `0` y el job de GitHub Actions falla.
+
+#### `validate_k8s_manifest.py`
+
+Este script valida la estructura minima del manifiesto Kubernetes antes de permitir que los cambios avancen en el flujo CI/CD.
+
+Actualmente se utiliza para validar el archivo:
+
+```text
+apps/myapp/base/deployment.yaml
+```
 
 ---
 
