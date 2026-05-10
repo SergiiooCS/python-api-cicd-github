@@ -25,6 +25,10 @@ jobs:
               with:
                 python-version: '3.12'
 
+            - name: Install dependencies
+              run: |
+                pip install -r requirements.txt
+
             - name: Check runner environment variables
               run: python3 scripts/check_runner_env.py
 
@@ -33,10 +37,6 @@ jobs:
 
             - name: Validate Kubernetes Deployment manifest
               run: python3 scripts/validate_k8s_manifest.py --file apps/myapp/base/deployment.yaml
-
-            - name: Install dependencies
-              run: |
-                pip install -r requirements.txt
 
             - name: Install Flake8 for linting
               run: |
