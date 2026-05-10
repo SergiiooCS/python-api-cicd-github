@@ -32,6 +32,12 @@ jobs:
             - name: Check runner environment variables
               run: python3 scripts/check_runner_env.py
 
+            - name: Check if runner required tools exists
+              run: python3 scripts/check_required_tools.py
+
+            - name: Validate Kubernetes Deployment manifest
+              run: python3 scripts/validate_k8s_manifest.py --file apps/myapp/base/deployment.yaml
+
             - name: Install Flake8 for linting
               run: |
                 pip install flake8
