@@ -112,6 +112,8 @@ El runner self-hosted permite:
 La imagen del runner se construye a partir de un `Containerfile`.
 
 Contenido:
+
+    FROM ubuntu:24.04
     # evita prompts interactivos en apt (importante en builds automaticos)
     ENV DEBIAN_FRONTEND=noninteractive
 
@@ -192,6 +194,7 @@ Contenido:
     ENTRYPOINT ["/entrypoint.sh"]
 
 Contenido del archivo `Entrypoint.sh`:
+
     #!/usr/bin/env bash
     #INDICAMOS QUE UTILICE EL PATH DE LA DISTRIBUCION UNIX PARA UBICAR LA RUTA DEL INTERPRETE 'BASH0'
 
@@ -502,74 +505,10 @@ https://github.com/MuhammedKalkan/OpenLens
 
 Una vez completado el flujo CI/CD y GitOps, el siguiente objetivo es aplicar buenas prácticas de seguridad sobre el repositorio.
 
-### Cambios a aplicar
-
-#### Branch Protection Rules
+### Branch Protection Rules
 
 Los rulesets en cuentas personales privadas de GitHub Free no pueden aplicarse realmente sobre las ramas protegidas.
 
-En este laboratorio no puedo forzar su aplicación, pero los configuro igualmente para aprender el flujo y las buenas prácticas utilizadas en entornos reales.
-
-##### Ruleset para proteger la rama `main`
-
-- **Nombre:** `Protect main branch`
-- **Enforcement status:** `Active`
-- **Target branches:** `main`
-
-##### Reglas configuradas
-
-- Restrict deletions
-- Require a pull request before merging
-  - Required approvals: `1`
-- Dismiss stale pull request approvals when new commits are pushed
-- Require status checks to pass
-- Require branches to be up to date before merging
-- Required status checks:
-  - `ci-python-app`
-- Block force pushes
-
----
-
-#### Secret Management
-
-Pendiente de aplicar/mejorar:
-
-- Rotación de tokens
-- Principio de mínimos privilegios
-- Gestión de secretos en GitHub Actions
-- Secretos para Kubernetes
-- Buenas prácticas de almacenamiento de credenciales
-
----
-
-#### `GITHUB_TOKEN` Scopes
-
-Revisión y hardening de permisos:
-
-- Permisos mínimos necesarios en workflows CI/CD.
-- Revisión de permisos del `GITHUB_TOKEN`.
-- Revisión de permisos del `GITHUB_PAT`.
-- Eliminación de permisos innecesarios.
-- Separación entre permisos de CI y CD.
-
----
-
-## Estado actual
-
-- Runner self-hosted funcionando en Podman.
-- Docker-in-Docker funcionando dentro del runner.
-- Workflow Build funcionando.
-- Workflow Publish funcionando.
-- Imagen publicada en GHCR.
-- PR automática para actualizar `deployment.yaml`.
-- FluxCD reconciliando cambios en Minikube.
-- Primeras reglas de seguridad documentadas.
-
-## Cambios a aplicar
-
-### Branch Protection Rules
-
-Los rulesets en cuentas personales privadas de GitHub Free no pueden aplicarse realmente sobre las ramas protegidas.  
 En este laboratorio no puedo forzar su aplicación, pero los configuro igualmente para aprender el flujo y las buenas prácticas utilizadas en entornos reales.
 
 #### Ruleset para proteger la rama `main`
@@ -608,8 +547,21 @@ Pendiente de aplicar/mejorar:
 
 Revisión y hardening de permisos:
 
-- Permisos mínimos necesarios en workflows CI/CD
-- Revisión de permisos del `GITHUB_TOKEN`
-- Revisión de permisos del `GITHUB_PAT`
-- Eliminación de permisos innecesarios
-- Separación entre permisos de CI y CD
+- Permisos mínimos necesarios en workflows CI/CD.
+- Revisión de permisos del `GITHUB_TOKEN`.
+- Revisión de permisos del `GITHUB_PAT`.
+- Eliminación de permisos innecesarios.
+- Separación entre permisos de CI y CD.
+
+---
+
+## Estado actual
+
+- Runner self-hosted funcionando en Podman.
+- Docker-in-Docker funcionando dentro del runner.
+- Workflow Build funcionando.
+- Workflow Publish funcionando.
+- Imagen publicada en GHCR.
+- PR automática para actualizar `deployment.yaml`.
+- FluxCD reconciliando cambios en Minikube.
+- Primeras reglas de seguridad documentadas.
