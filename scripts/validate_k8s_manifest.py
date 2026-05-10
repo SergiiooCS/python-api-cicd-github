@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 import yaml
 
-from scripts.chuleta_comandos import parse_args
-
 #FUNCION QUE PARSEA ARGUMENTOS RECIBIDOS POR LA LINEA DE COMANDOS CUANDO SE EJECUTA EL SCRIPT. EN ESTE CASO, SE ESPERA RECIBIR UN ARGUMENTO LLAMADO '--file' QUE ES LA RUTA AL MANIFIESTO DE KUBERNETES QUE QUEREMOS VALIDAR.
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -165,7 +163,7 @@ DEVUELVO LA LISTA DE ERRORES DE VALIDACION. SI LA LISTA ESTA VACIA, SIGNIFICA QU
 
 #FUNCION PRINCIPAL QUE EJECUTA EL SCRIPT.
 def main():
-    args = parse_args()
+    args = parse_arguments()
 
     try:
         manifest = load_yaml_file(args.file)
